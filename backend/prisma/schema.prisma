@@ -1,0 +1,36 @@
+// Configuração padrão do Prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- Nossas Tabelas ---
+
+// Tabela de Categorias (ex: Comida, Lazer)
+// Ela guarda o "limite" que você quer monitorar
+model Categoria {
+  id           Int      @id @default(autoincrement())
+  nome         String   @unique // Não pode ter duas categorias com mesmo nome
+  limiteMensal Decimal  @db.Decimal(10, 2) // Ex: 1500.00
+  gastos       Gasto[]  // Relação: Uma categoria tem vários gastos
+  
+  createdAt    DateTime @default(now())
+}
+
+// Tabela de Gastos (ex: Almoço, Uber)
+model Gasto {
+  id          Int      @id @default(autoincrement())
+  nome        String   // Ex: "Almoço no Shopping"
+  valor       Decimal  @db.Decimal(10, 2)
+  data        DateTime
+  formaPagamento String // Ex: "Crédito", "Pix"
+  
+  // Relacionamento (Chave Estrangeira)
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+  categoriaId Int
+  
+  createdAt   DateTime @default(now())
+}
