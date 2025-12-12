@@ -1,18 +1,16 @@
 services:
-  # 1. Banco de Dados
   db:
     image: postgres:15-alpine
     container_name: finance_db_container
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: usuario_local
-      POSTGRES_PASSWORD: senha_secreta_local
+      POSTGRES_USER: usuario_teste
+      POSTGRES_PASSWORD: senha_secreta_teste
       POSTGRES_DB: financas
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # 2. Back-end
   backend:
     build: ./backend
     container_name: finance_backend_container
@@ -21,18 +19,16 @@ services:
     depends_on:
       - db
     environment:
-      # ATENÇÃO: Aqui o host não é 'localhost', é 'db' (o nome do serviço acima)
-      DATABASE_URL: "postgresql://usuario_local:senha_secreta_local@db:5432/financas?schema=public"
+      DATABASE_URL: "postgresql://usuario_teste:senha_secreta_teste@db:5432/financas?schema=public"
       PORT: 3000
       # Configuração de CORS para aceitar o frontend na porta 8080
       CORS_ORIGIN: "http://localhost:8080"
 
-  # 3. Front-end
   frontend:
     build: ./frontend
     container_name: finance_frontend_container
     ports:
-      - "8080:80" # Acessaremos no navegador via localhost:8080
+      - "80:80"
     depends_on:
       - backend
 
