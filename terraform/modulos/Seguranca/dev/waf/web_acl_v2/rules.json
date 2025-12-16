@@ -1,0 +1,204 @@
+[
+  {
+    "name": "PH-BlockCN_RU",
+    "priority": 0,
+    "action": {
+      "block": {}
+    },
+    "statement": {
+      "geo_match_statement": {
+        "country_codes": ["CN", "RU"]
+      }
+    },
+    "visibility_config": {
+      "cloudwatch_metrics_enabled": true,
+      "metric_name": "PH-BlockCN_RU",
+      "sampled_requests_enabled": true
+    }
+  },
+  {
+    "name": "PH-LiberaEndpoint",
+    "priority": 1,
+    "action": {
+      "count": {}
+    },
+    "statement": {
+      "or_statement": {
+        "statements": [
+          {
+            "byte_match_statement": {
+              "search_string": "/physicalPayment/api/v2/payment",
+              "field_to_match": { "uri_path": {} },
+              "text_transformations": [
+                {
+                  "priority": 0,
+                  "type": "NONE"
+                }
+              ],
+              "positional_constraint": "EXACTLY"
+            }
+          },
+          {
+            "byte_match_statement": {
+              "search_string": "/physicalPayment/api/v2/initialization",
+              "field_to_match": { "uri_path": {} },
+              "text_transformations": [
+                {
+                  "priority": 0,
+                  "type": "NONE"
+                }
+              ],
+              "positional_constraint": "EXACTLY"
+            }
+          },
+          {
+            "byte_match_statement": {
+              "search_string": "/physicalPayment/api/v2/confirmation",
+              "field_to_match": { "uri_path": {} },
+              "text_transformations": [
+                {
+                  "priority": 0,
+                  "type": "NONE"
+                }
+              ],
+              "positional_constraint": "EXACTLY"
+            }
+          }
+        ]
+      }
+    },
+    "visibility_config": {
+      "cloudwatch_metrics_enabled": true,
+      "metric_name": "PH-LiberaEndpoint",
+      "sampled_requests_enabled": true
+    }
+  },
+  {
+    "name": "AWS-AWSManagedRulesAdminProtectionRuleSet",
+    "priority": 2,
+    "override_action": { "none": {} },
+    "statement": {
+      "managed_rule_group_statement": {
+        "name": "AWSManagedRulesAdminProtectionRuleSet",
+        "vendor_name": "AWS"
+      }
+    },
+    "visibility_config": {
+      "cloudwatch_metrics_enabled": true,
+      "metric_name": "AWSManagedRulesAdminProtectionRuleSet",
+      "sampled_requests_enabled": true
+    }
+  },
+  {
+    "name": "AWS-AWSManagedRulesCommonRuleSet",
+    "priority": 3,
+    "override_action": { "none": {} },
+    "statement": {
+      "managed_rule_group_statement": {
+        "name": "AWSManagedRulesCommonRuleSet",
+        "vendor_name": "AWS",
+        "rule_action_overrides": [
+          {
+            "name": "SizeRestrictions_BODY",
+            "action_to_use": { "count": {} }
+          }
+        ]
+      }
+    },
+    "visibility_config": {
+      "cloudwatch_metrics_enabled": true,
+      "metric_name": "AWSManagedRulesCommonRuleSet",
+      "sampled_requests_enabled": true
+    }
+  },
+  {
+    "name": "AWS-AWSManagedRulesKnownBadInputsRuleSet",
+    "priority": 4,
+    "override_action": { "none": {} },
+    "statement": {
+      "managed_rule_group_statement": {
+        "name": "AWSManagedRulesKnownBadInputsRuleSet",
+        "vendor_name": "AWS"
+      }
+    },
+    "visibility_config": {
+      "cloudwatch_metrics_enabled": true,
+      "metric_name": "AWSManagedRulesKnownBadInputsRuleSet",
+      "sampled_requests_enabled": true
+    }
+  },
+  {
+    "name": "AWS-AWSManagedRulesLinuxRuleSet",
+    "priority": 5,
+    "override_action": { "none": {} },
+    "statement": {
+      "managed_rule_group_statement": {
+        "name": "AWSManagedRulesLinuxRuleSet",
+        "vendor_name": "AWS"
+      }
+    },
+    "visibility_config": {
+      "cloudwatch_metrics_enabled": true,
+      "metric_name": "AWSManagedRulesLinuxRuleSet",
+      "sampled_requests_enabled": true
+    }
+  },
+  {
+    "name": "AWS-AWSManagedRulesPHPRuleSet",
+    "priority": 6,
+    "override_action": { "none": {} },
+    "statement": {
+      "managed_rule_group_statement": {
+        "name": "AWSManagedRulesPHPRuleSet",
+        "vendor_name": "AWS",
+        "rule_action_overrides": [
+          {
+            "name": "PHPHighRiskMethodsVariables_BODY",
+            "action_to_use": { "count": {} }
+          },
+          {
+            "name": "PHPHighRiskMethodsVariables_QUERYARGUMENTS",
+            "action_to_use": { "count": {} }
+          }
+        ]
+      }
+    },
+    "visibility_config": {
+      "cloudwatch_metrics_enabled": true,
+      "metric_name": "AWSManagedRulesPHPRuleSet",
+      "sampled_requests_enabled": true
+    }
+  },
+  {
+    "name": "AWS-AWSManagedRulesAmazonIpReputationList",
+    "priority": 7,
+    "override_action": { "none": {} },
+    "statement": {
+      "managed_rule_group_statement": {
+        "name": "AWSManagedRulesAmazonIpReputationList",
+        "vendor_name": "AWS"
+      }
+    },
+    "visibility_config": {
+      "cloudwatch_metrics_enabled": true,
+      "metric_name": "AWSManagedRulesAmazonIpReputationList",
+      "sampled_requests_enabled": true
+    }
+  },
+  {
+    "name": "AWS-AWSManagedRulesAnonymousIpList",
+    "priority": 8,
+    "override_action": { "none": {} },
+    "statement": {
+      "managed_rule_group_statement": {
+        "name": "AWSManagedRulesAnonymousIpList",
+        "vendor_name": "AWS"
+      }
+    },
+    "visibility_config": {
+      "cloudwatch_metrics_enabled": true,
+      "metric_name": "AWSManagedRulesAnonymousIpList",
+      "sampled_requests_enabled": true
+    }
+  }
+]
