@@ -83,8 +83,8 @@ resource "aws_cloudfront_distribution" "this" {
   }
 
   viewer_certificate {
-    acm_certificate_arn            = local.cfg.ViewerCertificate.AcmCertificateArn
-    cloudfront_default_certificate = false
+    acm_certificate_arn            = try(local.cfg.ViewerCertificate.AcmCertificateArn, null)
+    cloudfront_default_certificate = try(local.cfg.ViewerCertificate.AcmCertificateArn, null) == null || try(local.cfg.ViewerCertificate.AcmCertificateArn, null) == "" ? true : false
     minimum_protocol_version       = try(local.cfg.ViewerCertificate.MinimumProtocolVersion, "TLSv1.2_2021")
     ssl_support_method             = try(local.cfg.ViewerCertificate.SslSupportMethod, "sni-only")
   }

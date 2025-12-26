@@ -2,7 +2,7 @@
 ############################################## VPC ###############################################################
 ##################################################################################################################
 
-vpc_cidr_block     = "10.123.0.0/16"
+vpc_cidr_block = "10.123.0.0/16"
 
 tags_vpc = {
   Name        = "VPC Rodrigo - Desafio EZOps"
@@ -12,7 +12,7 @@ tags_vpc = {
   ManagedBy   = "Terraform"
 }
 
-tags_route_table_public={
+tags_route_table_public = {
   Name        = "Public Route Table Rodrigo - Desafio EZOps"
   Owner       = "Rodrigo Gomes"
   Project     = "Desafios EZOps"
@@ -31,8 +31,8 @@ subnet_cidr_blocks_public = {
 }
 
 availability_zones_public = {
-   "us-east-2a" = "us-east-2a"
-   "us-east-2b" = "us-east-2b"
+  "us-east-2a" = "us-east-2a"
+  "us-east-2b" = "us-east-2b"
 }
 
 public_subnet_names = {
