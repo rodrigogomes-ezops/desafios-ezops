@@ -30,11 +30,8 @@ module "app_routes" {
   for_each       = module.route_table_public.route_table_ids_by_az
   source         = "./modulos/Conectividade/prod/route"
   route_table_id = each.value
-  routes_json    = replace(
-    file("${path.module}/routes/app_routes.json"),
-    "__INTERNET_GATEWAY_ID__",
-    module.internet_gateway.internet_gateway_id
-  )
+  routes_json    = file("${path.module}/routes/app_routes.json")
+  gateway_id     = module.internet_gateway.internet_gateway_id
 }
 
 module"route_table_public" {

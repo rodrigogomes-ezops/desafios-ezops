@@ -69,12 +69,25 @@ module "cloudfront_distribution" {
     DefaultRootObject   = var.cloudfront_default_root_object
     PriceClass          = var.cloudfront_price_class
     Aliases             = var.cloudfront_aliases
-    Origin = {
-      DomainName              = module.s3_frontend.bucket_regional_domain_name
-      OriginId                = var.cloudfront_origin_id
-      OriginAccessIdentityPath = module.cloudfront_oai.oai_cloudfront_access_identity_path
-    }
+    Origins = [
+      {
+        # Origem S3 para o frontend estático
+        DomainName              = module.s3_frontend.bucket_regional_domain_name
+        OriginId                = var.cloudfront_origin_id
+        OriginAccessIdentityPath = module.cloudfront_oai.oai_cloudfront_access_identity_path
+      },
+      {
+        # Origem ALB para a API
+        DomainName            = module.alb_backend.lb_dns_name
+        OriginId              = "ALB-backend"
+        HttpPort              = 80
+        HttpsPort             = 443
+        OriginProtocolPolicy  = "http-only"
+        OriginSslProtocols    = ["TLSv1.2"]
+      }
+    ]
     DefaultBehavior = {
+      TargetOriginId            = var.cloudfront_origin_id
       AllowedMethods            = var.cloudfront_allowed_methods
       CachedMethods             = var.cloudfront_cached_methods
       CachePolicyId             = var.cloudfront_cache_policy_id
@@ -83,7 +96,22 @@ module "cloudfront_distribution" {
       ViewerProtocolPolicy      = var.cloudfront_viewer_protocol_policy
       FunctionArn               = var.cloudfront_function_arn != null ? var.cloudfront_function_arn : null
     }
-    OrderedBehaviors = var.cloudfront_ordered_behaviors
+    OrderedBehaviors = concat(
+      var.cloudfront_ordered_behaviors,
+      [
+        {
+          PathPattern             = "/api/*"
+          TargetOriginId           = "ALB-backend"
+          AllowedMethods           = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+          CachedMethods            = ["GET", "HEAD"]
+          CachePolicyId            = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"  # Managed-CachingDisabled (melhor para APIs REST)
+          OriginRequestPolicyId    = null
+          ResponseHeadersPolicyId  = null
+          ViewerProtocolPolicy     = "redirect-to-https"
+          FunctionArn              = null
+        }
+      ]
+    )
     CustomErrorResponses = var.cloudfront_custom_error_responses
     Restrictions = {
       Type      = var.cloudfront_restriction_type

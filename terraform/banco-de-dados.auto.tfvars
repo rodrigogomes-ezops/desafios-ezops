@@ -27,7 +27,7 @@ tags_parameter_group_postgre = {
 #### RDS INSTANCE ####
 
 identifier_postgre                            = "rds-organizer"
-db_name_postgre                               = "postgre"
+db_name_postgre                               = "postgres"
 instance_class_postgre                        = "db.t3.micro"
 engine_postgre                                = "postgres"
 engine_version_postgre                        = "15"
@@ -54,7 +54,7 @@ allow_major_version_upgrade_postgre           = false
 auto_minor_version_upgrade_postgre            = true
 monitoring_interval_postgre                   = 0
 maintenance_window_postgre                    = "sun:06:05-sun:06:35"
-deletion_protection_postgre                   = true
+deletion_protection_postgre                   = false
 delete_automated_backups_postgre              = false
 monitoring_role_arn_postgre                   = null
 iam_database_authentication_postgre           = false

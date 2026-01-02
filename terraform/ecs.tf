@@ -58,12 +58,26 @@ module "target_group_backend" {
 #### ALB Listener ####
 #######################
 
-module "alb_listener" {
+# Listener HTTP (porta 80) - Redireciona para HTTPS se certificado estiver configurado
+module "alb_listener_http" {
   source            = "./modulos/Aplicacao/prod/balancer/lb_listener"
   lb_arn            = module.alb_backend.lb_arn
-  port              = var.alb_listener_port
-  protocol          = var.alb_listener_protocol
-  ssl_policy        = var.alb_listener_ssl_policy
+  port              = 80
+  protocol          = "HTTP"
+  ssl_policy        = ""
+  certificate_arn   = ""
+  target_group_arn   = module.target_group_backend.target_group_arn
+  tags              = var.tags_alb_listener
+}
+
+# Listener HTTPS (porta 443) - Opcional, requer certificado ACM
+module "alb_listener_https" {
+  count             = var.alb_listener_certificate_arn != "" ? 1 : 0
+  source            = "./modulos/Aplicacao/prod/balancer/lb_listener"
+  lb_arn            = module.alb_backend.lb_arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = var.alb_listener_ssl_policy != "" ? var.alb_listener_ssl_policy : "ELBSecurityPolicy-TLS-1-2-2017-01"
   certificate_arn   = var.alb_listener_certificate_arn
   target_group_arn   = module.target_group_backend.target_group_arn
   tags              = var.tags_alb_listener
@@ -73,19 +87,26 @@ module "alb_listener" {
 #### ECS Task Definition ####
 #######################
 
-# Construir container definitions dinamicamente, substituindo DATABASE_URL pelo output do RDS
 locals {
-  # Substituir o DATABASE_URL pelo output do RDS em cada container definition
+  # Substituir o DATABASE_URL pelo output do RDS e adicionar CORS_ORIGIN com URL do CloudFront do frontend
   container_definitions_with_db = [
     for container in var.ecs_container_definitions : merge(
       container,
       {
-        environment = [
-          for env in container.environment : env.name == "DATABASE_URL" ? {
-            name  = env.name
-            value = module.rds_postgre.rds_postgres_connection_string
-          } : env
-        ]
+        environment = concat(
+          # Substitui DATABASE_URL se existir, senão mantém original
+          [
+            for env in container.environment : env.name == "DATABASE_URL" ? {
+              name  = env.name
+              value = module.rds_postgre.rds_postgres_connection_string
+            } : env
+          ],
+          # Adiciona CORS_ORIGIN se não existir no container original
+          length([for env in container.environment : env if env.name == "CORS_ORIGIN"]) == 0 ? [{
+            name  = "CORS_ORIGIN"
+            value = "https://${module.cloudfront_distribution.domain_name}"
+          }] : []
+        )
       }
     )
   ]
@@ -130,4 +151,3 @@ module "ecs_service" {
   enable_execute_command             = var.ecs_enable_execute_command
   tags                                = var.tags_ecs_service
 }
-

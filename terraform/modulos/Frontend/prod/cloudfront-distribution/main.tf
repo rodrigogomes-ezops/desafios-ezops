@@ -1,8 +1,8 @@
 locals {
   cfg = jsondecode(var.config_json)
 
-  # atalhos (com defaults seguros)
-  origin = local.cfg.Origin
+  # Suporta tanto Origin (objeto único) quanto Origins (array) para compatibilidade
+  origins = try(local.cfg.Origins, try(local.cfg.Origin, null) != null ? [local.cfg.Origin] : [])
   defb   = try(local.cfg.DefaultBehavior, {})
 }
 
@@ -13,18 +13,39 @@ resource "aws_cloudfront_distribution" "this" {
   default_root_object = try(local.cfg.DefaultRootObject, "index.html")
   price_class         = try(local.cfg.PriceClass, "PriceClass_All")
 
-  origin {
-    domain_name = local.origin.DomainName
-    origin_id   = local.origin.OriginId
+  # Múltiplas origens
+  dynamic "origin" {
+    for_each = local.origins
+    content {
+      domain_name = origin.value.DomainName
+      origin_id   = origin.value.OriginId
 
-    s3_origin_config {
-      origin_access_identity = local.origin.OriginAccessIdentityPath
+      # Configuração S3 (se OriginAccessIdentityPath estiver presente)
+      dynamic "s3_origin_config" {
+        for_each = try(origin.value.OriginAccessIdentityPath, null) != null ? [1] : []
+        content {
+          origin_access_identity = origin.value.OriginAccessIdentityPath
+        }
+      }
+
+      # Configuração custom (ALB) - se não tiver OriginAccessIdentityPath
+      dynamic "custom_origin_config" {
+        for_each = try(origin.value.OriginAccessIdentityPath, null) == null ? [1] : []
+        content {
+          http_port                = try(origin.value.HttpPort, 80)
+          https_port               = try(origin.value.HttpsPort, 443)
+          origin_protocol_policy   = try(origin.value.OriginProtocolPolicy, "http-only")
+          origin_ssl_protocols     = try(origin.value.OriginSslProtocols, ["TLSv1.2"])
+          origin_read_timeout      = try(origin.value.OriginReadTimeout, 60)
+          origin_keepalive_timeout = try(origin.value.OriginKeepaliveTimeout, 5)
+        }
+      }
     }
   }
 
   # Default behavior
   default_cache_behavior {
-    target_origin_id           = local.origin.OriginId
+    target_origin_id           = try(local.defb.TargetOriginId, local.origins[0].OriginId)
     allowed_methods            = try(local.defb.AllowedMethods, ["GET","HEAD","OPTIONS"])
     cached_methods             = try(local.defb.CachedMethods,  ["GET","HEAD"])
     cache_policy_id            = local.defb.CachePolicyId
@@ -46,7 +67,7 @@ resource "aws_cloudfront_distribution" "this" {
     for_each = try(local.cfg.OrderedBehaviors, [])
     content {
       path_pattern               = ordered_cache_behavior.value.PathPattern
-      target_origin_id           = local.origin.OriginId
+      target_origin_id           = try(ordered_cache_behavior.value.TargetOriginId, local.origins[0].OriginId)
       allowed_methods            = try(ordered_cache_behavior.value.AllowedMethods, ["GET","HEAD","OPTIONS"])
       cached_methods             = try(ordered_cache_behavior.value.CachedMethods,  ["GET","HEAD"])
       cache_policy_id            = ordered_cache_behavior.value.CachePolicyId

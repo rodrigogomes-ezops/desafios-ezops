@@ -3,28 +3,48 @@ const express = require('express');
 const cors = require('cors');
 const gastosRoutes = require('./routes/gastos.routes');
 const categoriaRoutes = require('./routes/categoria.routes');
-const relatorioRoutes = require('./routes/relatorio.routes');
+// Se você não tiver o arquivo de rotas de relatório separado e ele estiver dentro de gastos, 
+// pode remover a linha abaixo ou comentar se der erro.
+// const relatorioRoutes = require('./routes/relatorio.routes'); 
 
 const app = express();
+const router = express.Router(); 
 
-// Definição da origem permitida (o endereço onde seu React está rodando)
+
+const allowedOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',') 
+  : ['http://localhost:5173', 'http://localhost:8080'];
+
 const corsOptions = {
-  origin: 'http://localhost:5173', // <--- Mude para a porta real do seu React se for diferente de 5173
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   credentials: true,
   optionsSuccessStatus: 204
 };
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
+router.use('/gastos', gastosRoutes);
+router.use('/categorias', categoriaRoutes);
 
-// Usa as rotas de gastos
-// Tudo que estiver em gastosRoutes começará com /gastos
-app.use('/gastos', gastosRoutes);
-app.use('/categorias', categoriaRoutes);
-app.use('/relatorios', relatorioRoutes);
+
+router.get('/', (req, res) => {
+  res.json({ message: 'API Financeira acessível via /api' });
+});
+
+app.use('/api', router);
+
+
 app.get('/', (req, res) => {
-  res.json({ message: 'API Financeira rodando!' });
+  res.json({ message: 'Servidor Online! Use /api para acessar os recursos.' });
 });
 
 const PORT = 3000;

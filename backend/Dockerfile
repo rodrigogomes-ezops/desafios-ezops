@@ -1,25 +1,41 @@
 # backend/Dockerfile
+# Multi-stage build para otimizar tamanho da imagem
 
-# 1. Usa uma imagem leve do Node
-FROM node:20-alpine
+# Estágio 1: Build (para gerar Prisma Client e instalar dependências)
+FROM node:20-alpine AS builder
 
-# 2. Define a pasta de trabalho dentro do container
 WORKDIR /app
 
-# 3. Copia os arquivos de dependência primeiro (para aproveitar cache)
+# Copia arquivos de dependência
 COPY package*.json ./
+COPY prisma ./prisma/
 
-# 4. Instala dependências (incluindo dev dependencies para rodar migrações se necessário)
-RUN npm install
+# Instala TODAS as dependências (incluindo devDependencies para Prisma CLI)
+RUN npm ci
 
-# 5. Copia o restante do código
-COPY . .
-
-# 6. Gera o cliente do Prisma (essencial!)
+# Gera o cliente do Prisma
 RUN npx prisma generate
 
-# 7. Expõe a porta que o Express usa
+# Estágio 2: Produção (imagem final menor)
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Copia apenas package.json e package-lock.json
+COPY package*.json ./
+
+# Instala APENAS dependências de produção (sem devDependencies)
+RUN npm ci --only=production
+
+# Copia o cliente Prisma gerado do estágio anterior
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copia o código da aplicação (inclui prisma/schema.prisma)
+COPY . .
+
+# Expõe a porta
 EXPOSE 3000
 
-# 8. Comando para iniciar
-CMD ["npm", "run", "dev"]
+# Usa script de produção (não nodemon)
+CMD ["npm", "start"]

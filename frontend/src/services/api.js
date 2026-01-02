@@ -1,22 +1,28 @@
 import axios from 'axios';
 
-// Certifique-se de que o backend está rodando na porta 3000
+// URL da API: 
+// - Em desenvolvimento: http://localhost:3000
+// - Em produção: usa VITE_API_URL ou padrão '/api' (se houver proxy configurado)
+// - Para CloudFront: usar a URL completa do CloudFront do backend
+const baseURL = import.meta.env.DEV 
+  ? 'http://localhost:3000' 
+  : (import.meta.env.VITE_API_URL || '/api');
+
 const api = axios.create({
-  baseURL: 'http://localhost:3000', 
+  baseURL: baseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 export const criarCategoria = async (nome, limite) => {
-  const response = await fetch(`${BASE_URL}/categorias`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ nome, limite }),
-  });
-  if (!response.ok) {
-    throw new Error('Erro ao criar categoria');
+  try {
+    const response = await api.post('/categorias', { nome, limite });
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao criar categoria:', error);
+    throw error;
   }
-  return await response.json();
 };
 
 export default api;

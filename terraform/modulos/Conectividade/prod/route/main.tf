@@ -20,7 +20,8 @@ resource "aws_route" "this" {
   destination_prefix_list_id   = try(each.value.destination_prefix_list_id, null)
 
   # Alvo (use apenas 1 por rota)
-  gateway_id                   = try(each.value.gateway_id, null)              # IGW/VGW
+  # Se gateway_id foi fornecido como variável, usa ele; senão usa do JSON
+  gateway_id                   = var.gateway_id != null ? var.gateway_id : try(each.value.gateway_id, null)
   nat_gateway_id               = try(each.value.nat_gateway_id, null)
   transit_gateway_id           = try(each.value.transit_gateway_id, null)
   vpc_peering_connection_id    = try(each.value.vpc_peering_connection_id, null)

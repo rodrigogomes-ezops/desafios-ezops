@@ -10,6 +10,6 @@ output "rds_port" {
 
 output "rds_postgres_connection_string" {
   description = "Connection string do PostgreSQL"
-  value       = "postgresql://${var.username}:${var.password}@${aws_db_instance.this.address}:${aws_db_instance.this.port}/${var.db_name}"
+  value       = "postgresql://${var.username}:${var.password}@${aws_db_instance.this.address}:${aws_db_instance.this.port}/${var.db_name}?ssl=no-verify"
   sensitive   = true
 }

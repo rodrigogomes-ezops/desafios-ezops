@@ -1,20 +1,25 @@
 # frontend/Dockerfile
+# Multi-stage build para otimizar tamanho da imagem
 
 # Estágio 1: Build (Construção)
 FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# Copia arquivos de dependência
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
+# Copia o código
 COPY . .
 
-# Argumento de build para a URL da API
-# Isso "grava" o endereço do backend no código JS
-ARG VITE_API_URL=http://localhost:3000
+# Argumento de build para a URL da API (deve ser passado no build time)
+# Para desenvolvimento local: --build-arg VITE_API_URL=http://localhost:3000
+# Para produção AWS: --build-arg VITE_API_URL=https://<cloudfront-backend-url>.cloudfront.net
+ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
+# Build da aplicação
 RUN npm run build
 
 # Estágio 2: Servidor (Nginx)

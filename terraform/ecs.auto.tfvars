@@ -33,7 +33,7 @@ ecs_task_role_arn               = null  # Deixe null se não precisar de permiss
 ecs_container_definitions = [
   {
     name      = "backend"
-    image     = "618889059366.dkr.ecr.us-east-2.amazonaws.com/backend-app-organizer:latest"  # IMPORTANTE: Adicione a tag :latest ou uma tag específica
+    image     = "618889059366.dkr.ecr.us-east-2.amazonaws.com/backend-app-organizer:v2"  # IMPORTANTE: Adicione a tag :latest ou uma tag específica
     essential = true
     portMappings = [
       {
@@ -119,7 +119,7 @@ target_group_port              = 3000
 target_group_protocol          = "HTTP"
 target_group_protocol_version  = "HTTP1"
 health_check_protocol          = "HTTP"
-health_check_path              = "/health"  # Ajuste conforme sua aplicação
+health_check_path              = "/"  # Ajuste conforme sua aplicação
 health_check_port              = "traffic-port"
 healthy_threshold              = 2
 unhealthy_threshold            = 3
@@ -141,8 +141,8 @@ tags_target_group = {
 
 alb_listener_port          = 80
 alb_listener_protocol      = "HTTP"
-alb_listener_ssl_policy     = ""
-alb_listener_certificate_arn = ""
+alb_listener_ssl_policy     = "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
+alb_listener_certificate_arn = "arn:aws:acm:us-east-2:618889059366:certificate/93bf1dc7-0f7d-41d0-81ae-137731d83f4b"
 
 tags_alb_listener = {
   Name        = "RODRIGO-ALB-LISTENER"
