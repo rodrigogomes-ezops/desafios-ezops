@@ -1,0 +1,35 @@
+name: DESTROY INFRASTRUCTURE
+
+on:
+  workflow_dispatch: # Isso cria um botão de disparo manual
+
+jobs:
+  destroy:
+    name: Destroy Terraform
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Configurar Credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy
+        # A flag -auto-approve evita que ele peça confirmação (não tem como interagir no GitHub)
+        env:
+          TF_VAR_password_postgre: ${{ secrets.DB_PASSWORD }}
+        run: terraform destroy -auto-approve
