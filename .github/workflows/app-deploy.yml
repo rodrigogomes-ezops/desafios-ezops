@@ -56,7 +56,7 @@ jobs:
           node-version: '18'
 
       - name: Install & Test Backend
-        working-directory: ./app-organizer/backend
+        working-directory: ./backend
         run: |
           npm ci
           # npm run lint (se tiver)
@@ -67,7 +67,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build & Push Docker (Backend)
-        working-directory: ./app-organizer/backend
+        working-directory: ./backend
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
@@ -88,11 +88,11 @@ jobs:
       # Deploy FRONTEND
       # -----------------------------------------------------------
       - name: Install & Build Frontend
-        working-directory: ./app-organizer/frontend
+        working-directory: ./frontend
         run: |
           npm ci
           npm run build
 
       - name: Upload Frontend para S3
         run: |
-          aws s3 sync ./app-organizer/frontend/dist s3://${{ steps.infra.outputs.s3_bucket }} --delete
+          aws s3 sync ./frontend/dist s3://${{ steps.infra.outputs.s3_bucket }} --delete
