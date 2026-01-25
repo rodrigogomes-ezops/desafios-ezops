@@ -25,25 +25,67 @@ module "subnet_public" {
   tags                      = var.tags_public_subnet
 }
 
-# Criar rotas para todas as route tables públicas
-module "app_routes" {
-  for_each       = module.route_table_public.route_table_ids_by_az
-  source         = "./modulos/Conectividade/prod/route"
-  route_table_id = each.value
-  routes_json    = file("${path.module}/routes/app_routes.json")
-  gateway_id     = module.internet_gateway.internet_gateway_id
+### Criaçao da Route Table Publica (1 route table compartilhada para 2 subnets) ###
+
+resource "aws_route_table" "public" {
+  vpc_id = module.vpc_app.vpc_id
+  tags   = merge(var.tags_route_table_public, {
+    Name = "Public-Route-Table"
+  })
 }
 
-module"route_table_public" {
-  source       = "./modulos/Conectividade/prod/route-table-public"
-  vpc_id       = module.vpc_app.vpc_id
-  subnet_ids   = module.subnet_public.public_subnet_id
-  tags         = var.tags_route_table_public
-  service_name = var.rt_public_name
+# Criar rota para a route table pública apontando para o Internet Gateway
+resource "aws_route" "public_igw" {
+  route_table_id         = aws_route_table.public.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = module.internet_gateway.internet_gateway_id
 }
 
-module "route_table_association_public" {
-  source          = "./modulos/Conectividade/prod/route-table-association"
-  subnet_ids      = module.subnet_public.public_subnet_id
-  route_table_ids = module.route_table_public.route_table_ids
+# Associar as subnets públicas à route table pública
+resource "aws_route_table_association" "public" {
+  for_each       = { for idx, subnet_id in module.subnet_public.public_subnet_id : idx => subnet_id }
+  subnet_id      = each.value
+  route_table_id = aws_route_table.public.id
+}
+
+### Criaçao da Subnet Privada ###
+
+module "subnet_private" {
+  source                     = "./modulos/Conectividade/prod/subnets/private-subnet"
+  vpc_id                     = module.vpc_app.vpc_id
+  subnet_cidr_blocks_private = var.subnet_cidr_blocks_private
+  private_subnet_names       = var.private_subnet_names
+  availability_zones         = var.availability_zones_private
+  tags                       = var.tags_private_subnet
+}
+
+### Criaçao do NAT Gateway ###
+
+module "nat_gateway" {
+  source         = "./modulos/Conectividade/prod/nat-gateway"
+  public_subnet_id = module.subnet_public.public_subnet_id[0] # Usa a primeira subnet pública
+  tags           = var.tags_nat_gateway
+}
+
+### Criaçao da Route Table Privada (1 route table compartilhada para 2 subnets) ###
+
+resource "aws_route_table" "private" {
+  vpc_id = module.vpc_app.vpc_id
+  tags   = merge(var.tags_route_table_private, {
+    Name = "Private-Route-Table"
+  })
+}
+
+# Criar rota para a route table privada apontando para o NAT Gateway
+resource "aws_route" "private_nat" {
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = module.nat_gateway.nat_gateway_id
+}
+
+# Associar as subnets privadas à route table privada
+resource "aws_route_table_association" "private" {
+  for_each       = { for idx, subnet_id in module.subnet_private.private_subnet_id : idx => subnet_id }
+  subnet_id      = each.value
+  route_table_id = aws_route_table.private.id
 }

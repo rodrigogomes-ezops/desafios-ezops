@@ -30,13 +30,6 @@ module "security_group_rds" {
       to_port         = 5432
       protocol        = "tcp"
       security_groups = [module.security_group_ecs.security_group_id]
-    },
-    {
-      description     = "Acesso Externo"
-      from_port       = 5432
-      to_port         = 5432
-      protocol        = "tcp"
-      cidr_blocks      = ["0.0.0.0/0"]
     }
   ]
   egress_rules = [

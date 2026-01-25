@@ -51,6 +51,44 @@ variable "rt_public_name" {
   type        = map(string)
 }
 
+variable "tags_private_subnet" {
+  description = "Tags adicionais para a Subnet Privada"
+  type        = map(string)
+  default     = {}
+}
+
+variable "subnet_cidr_blocks_private" {
+  description = "Lista de CIDR blocks para a subrede Privada"
+  type        = map(string)
+}
+
+variable "availability_zones_private" {
+  description = "Zonas de disponibilidades privadas"
+  type        = map(string)
+}
+
+variable "private_subnet_names" {
+  description = "Map para subrede privada"
+  type        = map(string)
+}
+
+variable "tags_route_table_private" {
+  description = "Tags adicionais para route table privada"
+  type        = map(string)
+  default     = {}
+}
+
+variable "rt_private_name" {
+  description = "Route table name Privada"
+  type        = map(string)
+}
+
+variable "tags_nat_gateway" {
+  description = "Tags adicionais para o NAT Gateway"
+  type        = map(string)
+  default     = {}
+}
+
 #################################################################################
 #------------------------# SECURITY - VARIAVEIS  #------------------------------#
 #################################################################################

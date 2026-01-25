@@ -69,8 +69,8 @@ module "subnet_group_rds" {
   source = "./modulos/Banco_de_dados/prod/db-subnet-group"
   name   = var.name_subnet_group_rds
   subnet_ids = [
-    module.subnet_public.public_subnet_ids_by_name["Public-Subnet-AZ-2a"],
-    module.subnet_public.public_subnet_ids_by_name["Public-Subnet-AZ-2b"]
+    module.subnet_private.private_subnet_ids_by_name["Private-Subnet-AZ-2a"],
+    module.subnet_private.private_subnet_ids_by_name["Private-Subnet-AZ-2b"]
   ]
   tags = var.tags_subnet_group_rds
 }
