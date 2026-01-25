@@ -29,7 +29,7 @@ jobs:
         run: terraform init
 
       - name: Terraform Destroy
-        # A flag -auto-approve evita que ele peça confirmação (não tem como interagir no GitHub)
         env:
           TF_VAR_password_postgre: ${{ secrets.DB_PASSWORD }}
+
         run: terraform destroy -auto-approve
