@@ -60,7 +60,6 @@ jobs:
 
       - name: Invalidar Cache do CloudFront (Opcional)
         run: |
-          # Descomente e configure se quiser invalidar o cache do CloudFront automaticamente
           # DISTRIBUTION_ID=$(terraform output -raw cloudfront_distribution_id)
           # aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
 

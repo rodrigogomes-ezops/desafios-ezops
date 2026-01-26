@@ -123,8 +123,9 @@ module "security_group_efs" {
 #######################
 
 resource "aws_efs_file_system" "prometheus_data" {
-  creation_token = "prometheus-data"
-  encrypted      = true
+  creation_token   = "prometheus-data"
+  encrypted        = true
+  performance_mode = "generalPurpose"
 
   tags = {
     Name        = "prometheus-data"
@@ -132,6 +133,29 @@ resource "aws_efs_file_system" "prometheus_data" {
     Project     = "Desafios EZOps"
     Environment = "Test"
     ManagedBy   = "Terraform"
+  }
+}
+
+# Access Point para o Prometheus (facilita o acesso)
+resource "aws_efs_access_point" "prometheus_data" {
+  file_system_id = aws_efs_file_system.prometheus_data.id
+
+  posix_user {
+    gid = 0
+    uid = 0
+  }
+
+  root_directory {
+    path = "/prometheus"
+    creation_info {
+      owner_gid   = 0
+      owner_uid   = 0
+      permissions = "777"  # Permissões completas para evitar problemas de escrita
+    }
+  }
+
+  tags = {
+    Name = "prometheus-access-point"
   }
 }
 
@@ -147,8 +171,9 @@ resource "aws_efs_mount_target" "prometheus_data" {
 #######################
 
 resource "aws_efs_file_system" "grafana_data" {
-  creation_token = "grafana-data"
-  encrypted      = true
+  creation_token   = "grafana-data"
+  encrypted        = true
+  performance_mode = "generalPurpose"
 
   tags = {
     Name        = "grafana-data"
@@ -156,6 +181,29 @@ resource "aws_efs_file_system" "grafana_data" {
     Project     = "Desafios EZOps"
     Environment = "Test"
     ManagedBy   = "Terraform"
+  }
+}
+
+# Access Point para o Grafana (facilita o acesso)
+resource "aws_efs_access_point" "grafana_data" {
+  file_system_id = aws_efs_file_system.grafana_data.id
+
+  posix_user {
+    gid = 472  # GID padrão do Grafana
+    uid = 472  # UID padrão do Grafana
+  }
+
+  root_directory {
+    path = "/grafana"
+    creation_info {
+      owner_gid   = 472
+      owner_uid   = 472
+      permissions = "755"
+    }
+  }
+
+  tags = {
+    Name = "grafana-access-point"
   }
 }
 
@@ -223,7 +271,11 @@ module "ecs_task_definition_prometheus" {
             --storage.tsdb.retention.time=15d \
             --web.console.libraries=/usr/share/prometheus/console_libraries \
             --web.console.templates=/usr/share/prometheus/consoles \
-            --web.enable-lifecycle
+            --web.enable-lifecycle \
+            --query.max-concurrency=20 \
+            --query.max-samples=50000000 \
+            --enable-feature=promql-at-modifier \
+            --query.lookback-delta=5m
         EOT
       ]
       mountPoints = [
@@ -250,7 +302,7 @@ module "ecs_task_definition_prometheus" {
         root_directory     = "/"
         transit_encryption  = "ENABLED"
         authorization_config = {
-          access_point_id = null
+          access_point_id = aws_efs_access_point.prometheus_data.id
           iam             = "DISABLED"
         }
       }
@@ -340,7 +392,7 @@ module "ecs_task_definition_grafana" {
         root_directory     = "/"
         transit_encryption  = "ENABLED"
         authorization_config = {
-          access_point_id = null
+          access_point_id = aws_efs_access_point.grafana_data.id
           iam             = "DISABLED"
         }
       }
