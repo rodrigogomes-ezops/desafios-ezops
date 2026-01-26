@@ -1,53 +1,8 @@
 global:
   scrape_interval: 15s
-  evaluation_interval: 15s
-  external_labels:
-    cluster: 'finance-app'
-    environment: 'prod'
 
-# Configuração do Alertmanager (opcional - pode ser configurado depois)
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets:
-#             - alertmanager:9093
-
-# Regras de alertas (opcional - pode ser configurado depois)
-# rule_files:
-#   - '/etc/prometheus/alerts.yml'
-
-# Configuração de scraping (coleta de métricas)
 scrape_configs:
-  # Métricas do próprio Prometheus
-  - job_name: 'prometheus'
+  - job_name: "backend-aws"
+    metrics_path: /metrics
     static_configs:
-      - targets: ['localhost:9090']
-
-  # Métricas do backend (Node.js) - via Service Discovery do ECS
-  # O backend expõe métricas em /metrics na porta 3000
-  - job_name: 'backend'
-    ec2_sd_configs:
-      - region: us-east-2
-        port: 3000
-        filters:
-          - name: tag:ServiceName
-            values:
-              - rodrigo-backend-service
-    metrics_path: '/metrics'
-    scrape_interval: 10s
-    relabel_configs:
-      - source_labels: [__meta_ec2_instance_id]
-        target_label: instance
-
-  # Métricas do backend via ALB
-  - job_name: 'backend'
-    static_configs:
-      # O endpoint será injetado via template do Terraform
-      - targets: ['${BACKEND_ENDPOINT}:80']
-    metrics_path: '/metrics'
-    scrape_interval: 10s
-
-  # Métricas do Node Exporter (se adicionar depois)
-  # - job_name: 'node-exporter'
-  #   static_configs:
-  #     - targets: ['node-exporter:9100']
+      - targets: ["${BACKEND_ENDPOINT}:80"]

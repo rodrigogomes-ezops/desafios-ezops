@@ -247,36 +247,56 @@ module "ecs_task_definition_prometheus" {
       entryPoint = ["/bin/sh", "-c"]
       command = [
         <<-EOT
-          # Criar arquivo de configuração
+          # Aguardar EFS estar montado (máximo 30 segundos)
+          echo "Waiting for EFS mount..."
+          for i in $(seq 1 30); do
+            if mountpoint -q /prometheus 2>/dev/null || [ -d /prometheus ]; then
+              echo "EFS mount confirmed"
+              break
+            fi
+            sleep 1
+          done
+          
+          # Criar arquivo de configuração (formato simplificado)
           cat > /etc/prometheus/prometheus.yml <<EOF
           global:
             scrape_interval: 15s
-            evaluation_interval: 15s
-            external_labels:
-              cluster: 'finance-app'
-              environment: 'prod'
           
           scrape_configs:
-            - job_name: 'prometheus'
+            - job_name: "backend-aws"
+              metrics_path: /metrics
               static_configs:
-                - targets: ['localhost:9090']
-            
-            - job_name: 'backend'
-              static_configs:
-                - targets: ['${local.backend_endpoint}:80']
-              metrics_path: '/metrics'
-              scrape_interval: 10s
+                - targets: ["${local.backend_endpoint}:80"]
           EOF
           
           # Garantir que o diretório do Prometheus existe
           mkdir -p /prometheus
           
-          # Criar arquivo de query log vazio com permissões corretas (evita erro de permissão)
-          touch /prometheus/queries.active 2>/dev/null || true
-          chmod 666 /prometheus/queries.active 2>/dev/null || true
-          
           # Garantir permissões de escrita no diretório
           chmod 777 /prometheus 2>/dev/null || true
+          
+          # Remover lock file se existir e for antigo (mais de 5 minutos)
+          # Isso evita problemas quando uma instância anterior não limpou o lock
+          LOCK_FILE="/prometheus/lock"
+          if [ -f "$LOCK_FILE" ]; then
+            LOCK_AGE=$(find "$LOCK_FILE" -mmin +5 2>/dev/null)
+            if [ -n "$LOCK_AGE" ]; then
+              echo "Removing stale lock file (older than 5 minutes)"
+              rm -f "$LOCK_FILE" 2>/dev/null || true
+            else
+              echo "Lock file exists but is recent, waiting 10 seconds..."
+              sleep 10
+              # Tentar remover novamente (pode ter sido liberado)
+              if [ -f "$LOCK_FILE" ]; then
+                echo "Removing lock file after wait"
+                rm -f "$LOCK_FILE" 2>/dev/null || true
+              fi
+            fi
+          fi
+          
+          # Criar arquivo de query log vazio com permissões corretas
+          touch /prometheus/queries.active 2>/dev/null || true
+          chmod 777 /prometheus/queries.active 2>/dev/null || true
           
           # Iniciar Prometheus
           exec /bin/prometheus \
@@ -356,6 +376,68 @@ module "ecs_task_definition_grafana" {
           protocol      = "tcp"
         }
       ]
+      entryPoint = ["/bin/sh", "-c"]
+      command = [
+        <<-EOT
+          # Aguardar EFS estar montado (máximo 30 segundos)
+          echo "Waiting for EFS mount..."
+          for i in $(seq 1 30); do
+            if mountpoint -q /var/lib/grafana 2>/dev/null || [ -d /var/lib/grafana ]; then
+              echo "EFS mount confirmed"
+              break
+            fi
+            sleep 1
+          done
+          
+          # Garantir que o diretório do Grafana existe e tem permissões corretas
+          mkdir -p /var/lib/grafana
+          # Tentar ajustar ownership, se falhar usar permissões amplas
+          chown -R grafana:grafana /var/lib/grafana 2>/dev/null || chmod -R 777 /var/lib/grafana 2>/dev/null || true
+          
+          # Criar subdiretórios necessários se não existirem
+          mkdir -p /var/lib/grafana/{dashboards,plugins,provisioning/{datasources,dashboards},alerting,log}
+          chown -R grafana:grafana /var/lib/grafana 2>/dev/null || chmod -R 777 /var/lib/grafana 2>/dev/null || true
+          
+          # Criar arquivo de datasource do Prometheus
+          cat > /var/lib/grafana/provisioning/datasources/prometheus-datasource.yml <<'EOF'
+          apiVersion: 1
+          
+          datasources:
+            - name: Prometheus
+              type: prometheus
+              access: proxy
+              orgId: 1
+              url: http://prometheus-service:9090
+              isDefault: true
+              editable: true
+              jsonData:
+                httpMethod: POST
+          EOF
+          
+          # Criar arquivo de configuração de dashboards
+          cat > /var/lib/grafana/provisioning/dashboards/dashboards.yml <<'EOF'
+          apiVersion: 1
+          
+          providers:
+            - name: "default-dashboards"
+              orgId: 1
+              folder: ""
+              type: file
+              disableDeletion: false
+              updateIntervalSeconds: 30
+              allowUiUpdates: true
+              editable: true
+              options:
+                path: /var/lib/grafana/dashboards
+          EOF
+          
+          # Ajustar permissões dos arquivos de provisioning
+          chown -R grafana:grafana /var/lib/grafana/provisioning 2>/dev/null || chmod -R 777 /var/lib/grafana/provisioning 2>/dev/null || true
+          
+          # Iniciar Grafana usando o entrypoint padrão
+          exec /run.sh
+        EOT
+      ]
       environment = [
         {
           name  = "GF_SECURITY_ADMIN_USER"
@@ -376,6 +458,22 @@ module "ecs_task_definition_grafana" {
         {
           name  = "GF_INSTALL_PLUGINS"
           value = ""
+        },
+        {
+          name  = "GF_PATHS_DATA"
+          value = "/var/lib/grafana"
+        },
+        {
+          name  = "GF_PATHS_LOGS"
+          value = "/var/lib/grafana/log"
+        },
+        {
+          name  = "GF_PATHS_PLUGINS"
+          value = "/var/lib/grafana/plugins"
+        },
+        {
+          name  = "GF_PATHS_PROVISIONING"
+          value = "/var/lib/grafana/provisioning"
         }
       ]
       mountPoints = [
@@ -558,8 +656,9 @@ resource "aws_ecs_service" "prometheus" {
     container_port   = 9090
   }
 
-  deployment_maximum_percent         = 200
-  deployment_minimum_healthy_percent = 100
+  # Permitir apenas 1 instância por vez para evitar conflitos de lock no EFS
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
 
   tags = {
     Name        = "PROMETHEUS-SERVICE"
@@ -589,8 +688,9 @@ resource "aws_ecs_service" "grafana" {
     container_port   = 3000
   }
 
-  deployment_maximum_percent         = 200
-  deployment_minimum_healthy_percent = 100
+  # Permitir apenas 1 instância por vez para evitar conflitos no EFS
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
 
   tags = {
     Name        = "GRAFANA-SERVICE"
