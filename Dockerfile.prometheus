@@ -4,8 +4,3 @@ FROM prom/prometheus:latest
 COPY observability/prometheus/prometheus.yml /etc/prometheus/prometheus.yml
 COPY observability/prometheus/prometheus-aws.yml /etc/prometheus/prometheus-aws.yml
 
-# Script para escolher qual configuração usar baseado na variável de ambiente
-RUN echo '#!/bin/sh\nset -e\nif [ -n "$ALB_DNS_NAME" ]; then\n  echo "Usando configuração AWS com ALB: $ALB_DNS_NAME"\n  # Substitui variável de ambiente no arquivo AWS\n  sed "s/\\${ALB_DNS_NAME}/$ALB_DNS_NAME/g" /etc/prometheus/prometheus-aws.yml > /tmp/prometheus.yml\n  exec /bin/prometheus --config.file=/tmp/prometheus.yml --storage.tsdb.path=/prometheus "$@"\nelse\n  echo "Usando configuração local"\n  exec /bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus "$@"\nfi' > /entrypoint.sh && chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
-
