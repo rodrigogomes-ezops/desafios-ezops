@@ -139,11 +139,6 @@ locals {
 #### Task Definition - Prometheus ####
 #######################
 
-# Local para substituir variáveis no arquivo de configuração do Prometheus
-locals {
-  backend_endpoint = module.alb_backend.lb_dns_name
-}
-
 module "ecs_task_definition_prometheus" {
   source                  = "./modulos/Aplicacao/prod/ecs/task-definition"
   family                  = "prometheus-task"
