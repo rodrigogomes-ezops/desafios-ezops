@@ -140,6 +140,7 @@ resource "aws_efs_file_system" "prometheus_data" {
 resource "aws_efs_access_point" "prometheus_data" {
   file_system_id = aws_efs_file_system.prometheus_data.id
 
+  # Usar root para evitar problemas de permissão
   posix_user {
     gid = 0
     uid = 0
@@ -150,7 +151,7 @@ resource "aws_efs_access_point" "prometheus_data" {
     creation_info {
       owner_gid   = 0
       owner_uid   = 0
-      permissions = "777"  # Permissões completas para evitar problemas de escrita
+      permissions = "777"  # Permissões completas
     }
   }
 
@@ -198,7 +199,7 @@ resource "aws_efs_access_point" "grafana_data" {
     creation_info {
       owner_gid   = 472
       owner_uid   = 472
-      permissions = "755"
+      permissions = "777"
     }
   }
 
@@ -246,6 +247,7 @@ module "ecs_task_definition_prometheus" {
       entryPoint = ["/bin/sh", "-c"]
       command = [
         <<-EOT
+          # Criar arquivo de configuração
           cat > /etc/prometheus/prometheus.yml <<EOF
           global:
             scrape_interval: 15s
@@ -265,17 +267,25 @@ module "ecs_task_definition_prometheus" {
               metrics_path: '/metrics'
               scrape_interval: 10s
           EOF
+          
+          # Garantir que o diretório do Prometheus existe
+          mkdir -p /prometheus
+          
+          # Criar arquivo de query log vazio com permissões corretas (evita erro de permissão)
+          touch /prometheus/queries.active 2>/dev/null || true
+          chmod 666 /prometheus/queries.active 2>/dev/null || true
+          
+          # Garantir permissões de escrita no diretório
+          chmod 777 /prometheus 2>/dev/null || true
+          
+          # Iniciar Prometheus
           exec /bin/prometheus \
             --config.file=/etc/prometheus/prometheus.yml \
             --storage.tsdb.path=/prometheus \
             --storage.tsdb.retention.time=15d \
             --web.console.libraries=/usr/share/prometheus/console_libraries \
             --web.console.templates=/usr/share/prometheus/consoles \
-            --web.enable-lifecycle \
-            --query.max-concurrency=20 \
-            --query.max-samples=50000000 \
-            --enable-feature=promql-at-modifier \
-            --query.lookback-delta=5m
+            --web.enable-lifecycle
         EOT
       ]
       mountPoints = [
