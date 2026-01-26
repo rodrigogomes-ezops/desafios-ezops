@@ -83,6 +83,42 @@ module "security_group_observability" {
 }
 
 #######################
+#### Security Group para EFS ####
+#######################
+
+module "security_group_efs" {
+  source      = "./modulos/Conectividade/prod/security-group"
+  name        = "RODRIGO-SG-EFS"
+  description = "Security Group para EFS"
+  vpc_id      = module.vpc_app.vpc_id
+  ingress_rules = [
+    {
+      description     = "NFS from observability services"
+      from_port       = 2049
+      to_port         = 2049
+      protocol        = "tcp"
+      security_groups = [module.security_group_observability.security_group_id]
+    }
+  ]
+  egress_rules = [
+    {
+      description = "Allow all outbound"
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  ]
+  tags = {
+    Name        = "RODRIGO-SG-EFS"
+    Owner       = "Rodrigo Gomes"
+    Project     = "Desafios EZOps"
+    Environment = "Test"
+    ManagedBy   = "Terraform"
+  }
+}
+
+#######################
 #### EFS para persistência do Prometheus ####
 #######################
 
@@ -103,7 +139,7 @@ resource "aws_efs_mount_target" "prometheus_data" {
   count           = length(module.subnet_private.private_subnet_id)
   file_system_id  = aws_efs_file_system.prometheus_data.id
   subnet_id       = module.subnet_private.private_subnet_id[count.index]
-  security_groups = [module.security_group_observability.security_group_id]
+  security_groups = [module.security_group_efs.security_group_id]
 }
 
 #######################
@@ -127,7 +163,7 @@ resource "aws_efs_mount_target" "grafana_data" {
   count           = length(module.subnet_private.private_subnet_id)
   file_system_id  = aws_efs_file_system.grafana_data.id
   subnet_id       = module.subnet_private.private_subnet_id[count.index]
-  security_groups = [module.security_group_observability.security_group_id]
+  security_groups = [module.security_group_efs.security_group_id]
 }
 
 # Local para endpoint do backend

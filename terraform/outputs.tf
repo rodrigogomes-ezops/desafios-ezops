@@ -11,6 +11,11 @@ output "cloudfront_frontend_url" {
   value       = "https://${module.cloudfront_distribution.domain_name}"
 }
 
+output "s3_frontend_bucket" {
+  description = "Nome do bucket S3 do frontend"
+  value       = module.s3_frontend.bucket_name
+}
+
 # output "cloudfront_backend_url" {
 #   description = "URL do CloudFront para o backend (ALB)"
 #   value       = "https://${aws_cloudfront_distribution.backend.domain_name}"

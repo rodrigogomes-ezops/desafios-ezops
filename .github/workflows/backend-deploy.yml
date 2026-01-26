@@ -1,0 +1,85 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-deploy.yml'
+  # Permite que o pipeline de Infra chame este aqui assim que terminar
+  workflow_run:
+    workflows: ["Infraestrutura (Terraform)"]
+    types:
+      - completed
+  workflow_dispatch: # Permite execução manual
+
+jobs:
+  deploy-backend:
+    name: Build & Deploy Backend
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # -----------------------------------------------------------
+      # Ler os Outputs da Infraestrutura
+      # -----------------------------------------------------------
+      - name: Configurar AWS e Ler Infra
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Setup Terraform (Apenas para ler outputs)
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+
+      - name: Carregar Variáveis da Infra
+        id: infra
+        working-directory: ./terraform
+        run: |
+          terraform init
+          echo "ecs_cluster=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_OUTPUT
+          echo "ecs_service=$(terraform output -raw ecs_service_name)" >> $GITHUB_OUTPUT
+
+      # -----------------------------------------------------------
+      # Deploy BACKEND
+      # -----------------------------------------------------------
+      - name: Setup Node.js (Backend)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install & Test Backend
+        working-directory: ./backend
+        run: |
+          npm ci
+          # npm run lint (se tiver)
+          # npm test (se tiver)
+
+      - name: Login no Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build & Push Docker (Backend)
+        working-directory: ./backend
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Deploy ECS (Backend)
+        run: |
+          aws ecs update-service --cluster ${{ steps.infra.outputs.ecs_cluster }} \
+                                 --service ${{ steps.infra.outputs.ecs_service }} \
+                                 --force-new-deployment
+
