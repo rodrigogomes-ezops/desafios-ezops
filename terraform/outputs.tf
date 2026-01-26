@@ -46,6 +46,15 @@ output "rds_connection_string" {
 }
 
 #######################
+#### S3 Frontend ####
+#######################
+
+output "s3_frontend_bucket" {
+  description = "Nome do bucket S3 do frontend"
+  value       = module.s3_frontend.bucket_name
+}
+
+#######################
 #### ECS ####
 #######################
 
