@@ -1,4 +1,30 @@
 # ==========================================================
+# CLOUDWATCH LOG GROUPS
+# ==========================================================
+
+resource "aws_cloudwatch_log_group" "prometheus" {
+  name              = "/ecs/prometheus"
+  retention_in_days = 30
+
+  tags = {
+    Name        = "prometheus-logs"
+    Environment = "observability"
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "aws_cloudwatch_log_group" "grafana" {
+  name              = "/ecs/grafana"
+  retention_in_days = 30
+
+  tags = {
+    Name        = "grafana-logs"
+    Environment = "observability"
+    ManagedBy   = "Terraform"
+  }
+}
+
+# ==========================================================
 # SEGURANÇA (Security Groups)
 # ==========================================================
 
@@ -73,14 +99,15 @@ resource "aws_ecs_task_definition" "prometheus_task" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/prometheus"
+          "awslogs-group"         = aws_cloudwatch_log_group.prometheus.name
           "awslogs-region"        = "us-east-2"
           "awslogs-stream-prefix" = "prometheus"
-          "awslogs-create-group"  = "true"
         }
       }
     }
   ])
+
+  depends_on = [aws_cloudwatch_log_group.prometheus]
 }
 
 resource "aws_ecs_service" "prometheus_service" {
@@ -126,14 +153,15 @@ resource "aws_ecs_task_definition" "grafana_task" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/grafana"
+          "awslogs-group"         = aws_cloudwatch_log_group.grafana.name
           "awslogs-region"        = "us-east-2"
           "awslogs-stream-prefix" = "grafana"
-          "awslogs-create-group"  = "true"
         }
       }
     }
   ])
+
+  depends_on = [aws_cloudwatch_log_group.grafana]
 }
 
 resource "aws_ecs_service" "grafana_service" {
