@@ -6,7 +6,7 @@
 resource "aws_security_group" "prometheus_sg" {
   name        = "prometheus-sg"
   description = "Security Group for Prometheus"
-  vpc_id      = module.vpc.vpc_id # Ajuste para a referência correta do seu módulo VPC
+  vpc_id      = module.vpc_app.vpc_id # Ajuste para a referência correta do seu módulo VPC
 
   # Saída para o Backend (Scraping)
   egress {
@@ -29,7 +29,7 @@ resource "aws_security_group" "prometheus_sg" {
 resource "aws_security_group" "grafana_sg" {
   name        = "grafana-sg"
   description = "Security Group for Grafana"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id      = module.vpc_app.vpc_id
 
   egress {
     from_port   = 0
