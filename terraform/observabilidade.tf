@@ -91,7 +91,7 @@ resource "aws_ecs_service" "prometheus_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = module.vpc.private_subnets # Rodar em subnet privada
+    subnets          = module.subnet_private.private_subnet_id
     security_groups  = [aws_security_group.prometheus_sg.id]
     assign_public_ip = false
   }
@@ -144,7 +144,7 @@ resource "aws_ecs_service" "grafana_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = module.vpc.public_subnets # Publique se quiser acesso direto (ou Privada + ALB)
+    subnets          = module.subnet_public.public_subnet_id # Publique se quiser acesso direto (ou Privada + ALB)
     security_groups  = [aws_security_group.grafana_sg.id]
     assign_public_ip = true # True se estiver na subnet pública para facilitar o acesso
   }
