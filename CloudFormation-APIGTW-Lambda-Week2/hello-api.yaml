@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Semana 2 - API Serverless de Hello'
+
+Resources:
+# IAM ROLE para a lamba rodar e criar logs
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+# função lambda
+  HelloFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.12
+      Code:
+        ZipFile: |
+          import json
+
+          def handler(event, context):
+              # Captura os parametros da query string (ex: ?name=Ezops)
+              query_params = event.get('queryStringParameters')
+              
+              # Se o parametro existir, usa ele. Se não, usa "Mundo"
+              name = "Mundo"
+              if query_params and 'name' in query_params:
+                  name = query_params['name']
+              
+              response_body = {
+                  "message": f"Hello, {name}!",
+                  "origin": "Desafio EZOps - Semana 2"
+              }
+
+              return {
+                  "statusCode": 200,
+                  "headers": { "Content-Type": "application/json" },
+                  "body": json.dumps(response_body)
+              }
+            
+#api gateway, a api em si
+  MyRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: HelloServerlessApi
+      Description: API criada via CloudFormation para o desafio da Semana 2
+
+#recurso /hello (o "path" da url)
+  HelloResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt MyRestApi.RootResourceId
+      PathPart: hello
+      RestApiId: !Ref MyRestApi
+
+#método GET para /hello
+  HelloMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      ResourceId: !Ref HelloResource
+      RestApiId: !Ref MyRestApi
+      Integration:
+        Type: AWS_PROXY 
+        IntegrationHttpMethod: POST # a lamba será invocada via post, internamente
+        Uri: !Sub 
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt HelloFunction.Arn
+
+#permissão para o api gateway invocar o lambda
+  LambdaApiGatewayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt HelloFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyRestApi}/*/GET/hello"
+
+#deployment da api (necessário para torná-la pública)
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: HelloMethod
+    Properties:
+      RestApiId: !Ref MyRestApi
+      StageName: dev
+
+#saída da api, a url para testar a api
+Outputs:
+  ApiUrl:
+    Description: URL para testar a API
+    Value: !Sub "https://${MyRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev/hello?name=Ezops"

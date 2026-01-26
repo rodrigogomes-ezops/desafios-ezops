@@ -1,0 +1,10 @@
+POST http://localhost:3000/gastos
+Content-Type: application/json
+
+{
+  "nome": "Hamburguer Artesanal",
+  "valor": 55.00,
+  "categoriaId": 1,
+  "data": "2023-10-27T12:00:00Z",
+  "formaPagamento": "Nubank"
+}
