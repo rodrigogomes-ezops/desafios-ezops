@@ -11,11 +11,6 @@ output "cloudfront_frontend_url" {
   value       = "https://${module.cloudfront_distribution.domain_name}"
 }
 
-output "s3_frontend_bucket" {
-  description = "Nome do bucket S3 do frontend"
-  value       = module.s3_frontend.bucket_name
-}
-
 # output "cloudfront_backend_url" {
 #   description = "URL do CloudFront para o backend (ALB)"
 #   value       = "https://${aws_cloudfront_distribution.backend.domain_name}"
@@ -81,5 +76,34 @@ output "security_group_ecs_id" {
 output "security_group_rds_id" {
   description = "ID do Security Group do RDS"
   value       = module.security_group_rds.security_group_id
+}
+
+#######################
+#### Observability ####
+#######################
+
+output "prometheus_service_name" {
+  description = "Nome do serviço Prometheus"
+  value       = "prometheus-service"
+}
+
+output "grafana_service_name" {
+  description = "Nome do serviço Grafana"
+  value       = "grafana-service"
+}
+
+output "prometheus_task_definition_arn" {
+  description = "ARN da task definition do Prometheus"
+  value       = module.prometheus_task_definition.task_definition_arn
+}
+
+output "grafana_task_definition_arn" {
+  description = "ARN da task definition do Grafana"
+  value       = module.grafana_task_definition.task_definition_arn
+}
+
+output "security_group_observability_id" {
+  description = "ID do Security Group de Observabilidade"
+  value       = module.security_group_observability.security_group_id
 }
 

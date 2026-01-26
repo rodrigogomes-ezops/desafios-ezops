@@ -1,5 +1,6 @@
 #######################################################################################################################
-# Observabilidade #####################################################################################################
+# Observabilidade (Prometheus + Grafana) #############################################################################
 # ---------------------------------------------------------------------------------------------------------------------
 
-grafana_admin_password = "admin"  # IMPORTANTE: Altere isso em produção usando secrets manager ou variável de ambiente!
+grafana_admin_password = "changeme"  # IMPORTANTE: Altere isso em produção! Use AWS Secrets Manager ou Parameter Store
+

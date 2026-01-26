@@ -1,0 +1,10 @@
+FROM grafana/grafana:latest
+
+COPY observability/grafana/provisioning /etc/grafana/provisioning
+COPY observability/grafana/dashboards /var/lib/grafana/dashboards
+COPY observability/grafana/entrypoint.sh /entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+

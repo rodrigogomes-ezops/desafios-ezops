@@ -1,0 +1,91 @@
+name: Deploy Observability (Prometheus + Grafana)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Dockerfile.prometheus'
+      - 'Dockerfile.grafana'
+      - 'monitoring/**'
+      - '.github/workflows/observability-deploy.yml'
+  workflow_run:
+    workflows: ["Infraestrutura (Terraform)"]
+    types:
+      - completed
+  workflow_dispatch: # Permite execução manual
+
+jobs:
+  deploy-observability:
+    name: Build & Deploy Prometheus & Grafana
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # -----------------------------------------------------------
+      # Configurar AWS
+      # -----------------------------------------------------------
+      - name: Configurar AWS
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Setup Terraform (Apenas para ler outputs)
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+
+      - name: Carregar Variáveis da Infra
+        id: infra
+        working-directory: ./terraform
+        run: |
+          terraform init
+          echo "ecs_cluster=$(terraform output -raw ecs_cluster_name)" >> $GITHUB_OUTPUT
+          echo "monitoring_service=$(terraform output -raw prometheus_service_name)" >> $GITHUB_OUTPUT
+
+      # -----------------------------------------------------------
+      # Build & Push Prometheus
+      # -----------------------------------------------------------
+      - name: Login no Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build & Push Docker (Prometheus)
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: prometheus-custom
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f Dockerfile.prometheus -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      # -----------------------------------------------------------
+      # Build & Push Grafana
+      # -----------------------------------------------------------
+      - name: Build & Push Docker (Grafana)
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: grafana-custom
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f Dockerfile.grafana -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      # -----------------------------------------------------------
+      # Deploy ECS (Observability)
+      # -----------------------------------------------------------
+      - name: Deploy ECS (Observability)
+        if: steps.infra.outputs.monitoring_service != ''
+        run: |
+          aws ecs update-service --cluster ${{ steps.infra.outputs.ecs_cluster }} \
+                                 --service ${{ steps.infra.outputs.monitoring_service }} \
+                                 --force-new-deployment
+
