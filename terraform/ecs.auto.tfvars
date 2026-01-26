@@ -26,14 +26,14 @@ ecs_task_network_mode           = "awsvpc"
 ecs_task_requires_compatibilities = ["FARGATE"]
 ecs_task_cpu                    = "256"
 ecs_task_memory                 = "512"
-ecs_execution_role_arn          = "arn:aws:iam::618889059366:role/ecsTaskExecutionRole"
-ecs_task_role_arn               = null
+ecs_execution_role_arn          = "arn:aws:iam::618889059366:role/ecsTaskExecutionRole"  # Ajuste com sua role
+ecs_task_role_arn               = null  # Deixe null se não precisar de permissões específicas para a task
 
 # Container Definitions
 ecs_container_definitions = [
   {
     name      = "backend"
-    image     = "618889059366.dkr.ecr.us-east-2.amazonaws.com/backend-app-organizer:v2" 
+    image     = "618889059366.dkr.ecr.us-east-2.amazonaws.com/backend-app-organizer:v2"  # IMPORTANTE: Adicione a tag :latest ou uma tag específica
     essential = true
     portMappings = [
       {
@@ -119,7 +119,7 @@ target_group_port              = 3000
 target_group_protocol          = "HTTP"
 target_group_protocol_version  = "HTTP1"
 health_check_protocol          = "HTTP"
-health_check_path              = "/"  
+health_check_path              = "/"  # Ajuste conforme sua aplicação
 health_check_port              = "traffic-port"
 healthy_threshold              = 2
 unhealthy_threshold            = 3
