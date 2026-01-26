@@ -1,0 +1,5 @@
+FROM prom/prometheus:latest
+
+# Copia ambas as configurações
+COPY observability/prometheus/prometheus.yml /etc/prometheus/prometheus.yml
+COPY observability/prometheus/prometheus-aws.yml /etc/prometheus/prometheus-aws.yml
