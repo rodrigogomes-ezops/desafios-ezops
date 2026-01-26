@@ -42,3 +42,26 @@ tags_sg_alb = {
   Environment = "Test"
   ManagedBy   = "Terraform"
 }
+
+########################
+# Security Group - Observability #
+########################
+
+name_sg_observability        = "RODRIGO-SG-OBSERVABILITY"
+description_sg_observability = "Security Group para Prometheus e Grafana"
+
+tags_sg_observability = {
+  Name        = "RODRIGO-SG-OBSERVABILITY"
+  Owner       = "Rodrigo Gomes"
+  Project     = "Desafio EZOps"
+  Environment = "Test"
+  ManagedBy   = "Terraform"
+}
+
+########################
+# Observability Config #
+########################
+
+grafana_admin_password = "admin123"  # IMPORTANTE: Altere em produção!
+prometheus_image       = "prom/prometheus:latest"
+grafana_image          = "grafana/grafana:latest"

@@ -840,12 +840,38 @@ variable "cloudfront_ssl_support_method" {
 }
 
 #######################################################################################################################
-# Observabilidade ####################################################################################################
+# Observability #######################################################################################################
 # ---------------------------------------------------------------------------------------------------------------------
+
+variable "name_sg_observability" {
+  description = "Nome do Security Group para Observabilidade"
+  type        = string
+}
+
+variable "description_sg_observability" {
+  description = "Descrição do Security Group para Observabilidade"
+  type        = string
+}
+
+variable "tags_sg_observability" {
+  description = "Tags do Security Group para Observabilidade"
+  type        = map(string)
+}
 
 variable "grafana_admin_password" {
   description = "Senha do administrador do Grafana"
   type        = string
   sensitive   = true
-  default     = "admin"  # IMPORTANTE: Altere isso em produção!
+}
+
+variable "prometheus_image" {
+  description = "Imagem Docker do Prometheus (deve incluir configuração customizada)"
+  type        = string
+  default     = "prom/prometheus:latest"
+}
+
+variable "grafana_image" {
+  description = "Imagem Docker do Grafana (deve incluir configuração customizada)"
+  type        = string
+  default     = "grafana/grafana:latest"
 }

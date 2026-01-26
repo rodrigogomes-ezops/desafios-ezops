@@ -1,0 +1,42 @@
+{
+  "ingress": [
+    {
+      "description": "Prometheus UI",
+      "from_port": 9090,
+      "to_port": 9090,
+      "protocol": "tcp",
+      "cidr_blocks": ["0.0.0.0/0"]
+    },
+    {
+      "description": "Grafana UI",
+      "from_port": 3000,
+      "to_port": 3000,
+      "protocol": "tcp",
+      "cidr_blocks": ["0.0.0.0/0"]
+    },
+    {
+      "description": "Acesso do Prometheus ao backend via ALB",
+      "from_port": 80,
+      "to_port": 80,
+      "protocol": "tcp",
+      "cidr_blocks": ["0.0.0.0/0"]
+    },
+    {
+      "description": "Acesso do Grafana ao Prometheus (interno)",
+      "from_port": 9090,
+      "to_port": 9090,
+      "protocol": "tcp",
+      "self": true
+    }
+  ],
+  "egress": [
+    {
+      "description": "Saída para internet",
+      "from_port": 0,
+      "to_port": 0,
+      "protocol": "-1",
+      "cidr_blocks": ["0.0.0.0/0"]
+    }
+  ]
+}
+

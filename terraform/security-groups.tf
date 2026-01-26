@@ -43,3 +43,13 @@ module "security_group_rds" {
   ]
   tags = var.tags_rds_ecs
 }
+
+module "security_group_observability" {
+  source        = "./modulos/Conectividade/prod/security-group"
+  name          = var.name_sg_observability
+  description   = var.description_sg_observability
+  vpc_id        = module.vpc_app.vpc_id
+  ingress_rules = jsondecode(file("${path.module}/security_rules/rules-sg-observability.json")).ingress
+  egress_rules  = jsondecode(file("${path.module}/security_rules/rules-sg-observability.json")).egress
+  tags          = var.tags_sg_observability
+}
