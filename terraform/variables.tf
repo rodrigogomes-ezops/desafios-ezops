@@ -838,3 +838,14 @@ variable "cloudfront_ssl_support_method" {
   type        = string
   default     = "sni-only"
 }
+
+#######################################################################################################################
+# Observabilidade ####################################################################################################
+# ---------------------------------------------------------------------------------------------------------------------
+
+variable "grafana_admin_password" {
+  description = "Senha do administrador do Grafana"
+  type        = string
+  sensitive   = true
+  default     = "admin"  # IMPORTANTE: Altere isso em produção!
+}
