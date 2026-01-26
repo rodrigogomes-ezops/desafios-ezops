@@ -57,7 +57,7 @@ module "security_group_observability" {
       security_groups = [module.security_group_alb.security_group_id]
     },
     {
-      description     = "Acesso do backend para métricas"
+      description     = "Backend access for metrics"
       from_port       = 9090
       to_port         = 9090
       protocol        = "tcp"
@@ -66,7 +66,7 @@ module "security_group_observability" {
   ]
   egress_rules = [
     {
-      description = "Saída para internet"
+      description = "Outbound to internet"
       from_port   = 0
       to_port     = 0
       protocol    = "-1"
