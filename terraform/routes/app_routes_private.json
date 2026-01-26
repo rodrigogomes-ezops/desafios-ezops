@@ -1,7 +1,0 @@
-{
-    "nat_route": {
-        "cidr_block": "0.0.0.0/0",
-        "nat_gateway_id": "__NAT_GATEWAY_ID__"
-    }
-}
-

@@ -1,6 +1,0 @@
-{
-    "igw_route": {
-        "cidr_block": "0.0.0.0/0",
-        "gateway_id": "__INTERNET_GATEWAY_ID__"
-    }
-}
