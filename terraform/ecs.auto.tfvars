@@ -33,7 +33,7 @@ ecs_task_role_arn               = null  # Deixe null se não precisar de permiss
 ecs_container_definitions = [
   {
     name      = "backend"
-    image     = "618889059366.dkr.ecr.us-east-2.amazonaws.com/backend-app-organizer:v2"  # IMPORTANTE: Adicione a tag :latest ou uma tag específica
+    image     = "618889059366.dkr.ecr.us-east-2.amazonaws.com/backend-app-organizer:latest"  # IMPORTANTE: Adicione a tag :latest ou uma tag específica
     essential = true
     portMappings = [
       {
